@@ -17,75 +17,99 @@ defmodule Frankenstein do
   require Logger
 
   alias Frankenstein.Experiment
-  alias Frankenstein.Experiment.Result
+  # alias Frankenstein.Experiment.Result
+
+  def run(
+        %Experiment{
+          context: context,
+          control: control,
+          module: mod
+        } = experiment
+      ) do
+    result = Experiment.run(:control, control)
+
+    if mod.enabled?(context) do
+      Task.Supervisor.start_child(
+        {:via, PartitionSupervisor, {Frankenstein.LabSupervisor, self()}},
+        fn ->
+          Frankenstein.Lab.run(experiment, result)
+        end
+      )
+    end
+
+    result.value
+  end
 
   # mhm vm snapshot before and after doesn't make sense because they run concurrently
-  def run(%Experiment{
-        module: module,
-        control: control_fn,
-        candidate: candidate_fn,
-        context: context
-      }) do
-    tasks = [
-      # Task.completed(do_run(control_fn)),
-      Task.async(fn -> do_run(control_fn) end),
-      if module.enabled?(context) do
-        Task.Supervisor.async_nolink(
-          # Frankenstein.ExperimentSupervisor,
-          # do I need PartitionSupervisor here?
-          {:via, PartitionSupervisor, {Frankenstein.LabSupervisor, self()}},
-          fn -> do_run(candidate_fn) end
-        )
-      else
-        # is this even a good idea?
-        Task.completed(:skipped)
-      end
-    ]
+  # def run(%Experiment{
+  #       module: module,
+  #       control: control_fn,
+  #       candidate: candidate_fn,
 
-    # TODO: I want to await infinity for control, and customizable timeout for candidate
-    # TODO: decide to run experiment or not based on Behaviour.sample/0
-    tasks
-    |> Task.yield_many()
-    |> Enum.map(fn {task, res} ->
-      res || Task.shutdown(task)
-    end)
-    |> case do
-      [{:ok, control_result}, {:ok, %Result{value: :skipped}}] ->
-        control_result.value
+  #       context: context
+  #     }) do
+  #   tasks = [
+  #     # Task.completed(do_run(control_fn)),
+  #     Task.async(fn -> do_run(control_fn) end),
+  #     if module.enabled?(context) do
+  #       Task.Supervisor.async_nolink(
+  #         # Frankenstein.ExperimentSupervisor,
+  #         # do I need PartitionSupervisor here?
+  #         {:via, PartitionSupervisor, {Frankenstein.LabSupervisor, self()}},
+  #         # fn -> do_run(candidate_fn) end
+  #         # this can be turned into running N candidates
+  #         fn -> Lab.run(candidate_fn) end
+  #       )
+  #     else
+  #       # is this even a good idea?
+  #       Task.completed(:skipped)
+  #     end
+  #   ]
 
-      [{:ok, control_result}, {:ok, candidate_result}] ->
-        # module.validate({control_result, candidate_result})
-        # module.publish(:match, {control_result, candidate_result})
+  #   # TODO: I want to await infinity for control, and customizable timeout for candidate
+  #   # TODO: decide to run experiment or not based on Behaviour.sample/0
+  #   tasks
+  #   |> Task.yield_many()
+  #   |> Enum.map(fn {task, res} ->
+  #     res || Task.shutdown(task)
+  #   end)
+  #   |> case do
+  #     [{:ok, control_result}, {:ok, %Result{value: :skipped}}] ->
+  #       control_result.value
 
-        {control_result, candidate_result}
-        |> tap(&module.validate(context, &1))
-        |> then(&module.publish(:match, context, &1))
+  #     [{:ok, control_result}, {:ok, candidate_result}] ->
+  #       # module.validate({control_result, candidate_result})
+  #       # module.publish(:match, {control_result, candidate_result})
 
-        control_result.value
+  #       {control_result, candidate_result}
+  #       |> tap(&module.validate(context, &1))
+  #       |> then(&module.publish(:match, context, &1))
 
-      # TODO: render error nicely // move to behaviour
-      [{:ok, result}, {:exit, {error, stacktrace}}] ->
-        Logger.warning(
-          "Candidate failed with error (#{error.__struct__}) #{inspect(error.message)}"
-        )
+  #       control_result.value
 
-        result.value
+  #     # TODO: render error nicely // move to behaviour
+  #     [{:ok, result}, {:exit, {error, stacktrace}}] ->
+  #       Logger.warning(
+  #         "Candidate failed with error (#{error.__struct__}) #{inspect(error.message)}"
+  #       )
 
-      # TODO: move to behaviour (?)
-      [{:ok, result}, nil] ->
-        # module.handle_timeout(context), module.publish(:timeout)
-        Logger.warning("Candidate timed out")
+  #       result.value
 
-        result
-    end
-  end
+  #     # TODO: move to behaviour (?)
+  #     [{:ok, result}, nil] ->
+  #       # module.handle_timeout(context), module.publish(:timeout)
+  #       Logger.warning("Candidate timed out")
 
-  defp do_run(func) do
-    {time, value} = :timer.tc(func)
+  #       result
+  #   end
+  # end
 
-    %Result{
-      time_ms: time,
-      value: value
-    }
-  end
+  # defp do_run(func) do
+  #   {time, value} = :timer.tc(func)
+
+  #   %Result{
+  #     time_ms: time,
+  #     value: value
+  #   }
+  # end
 end

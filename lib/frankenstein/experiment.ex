@@ -1,5 +1,5 @@
 defmodule Frankenstein.Experiment do
-  defstruct [:name, :module, :control, :candidate, :context]
+  defstruct [:name, :module, :control, :candidate, :context, :options]
 
   alias Frankenstein.Experiment.Result
 
@@ -7,7 +7,8 @@ defmodule Frankenstein.Experiment do
           module: module(),
           control: fun(),
           candidate: fun(),
-          context: map()
+          context: map(),
+          options: list()
         }
 
   @type context() :: map()
@@ -51,6 +52,16 @@ defmodule Frankenstein.Experiment do
     }
   end
 
+  def run(name, func) when is_function(func, 0) do
+    {time, value} = :timer.tc(func)
+
+    %Result{
+      name: name,
+      time_ms: time,
+      value: value
+    }
+  end
+
   def add_module(%__MODULE__{} = experiment, module) do
     %{experiment | module: module}
   end
@@ -64,6 +75,10 @@ defmodule Frankenstein.Experiment do
   end
 
   def add_context(%__MODULE__{} = experiment, context) do
-    %{experiment | context: context}
+    %{experiment | context: Enum.into(context, %{})}
+  end
+
+  def add_options(%__MODULE__{} = experiment, options) do
+    %{experiment | options: Enum.into(options, %{})}
   end
 end
