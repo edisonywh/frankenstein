@@ -13,7 +13,7 @@ defmodule Frankenstein.Experiment do
   @type context() :: map()
   @type event_type() :: :match | :mismatch | :skipped
 
-  @callback sample(context()) :: boolean()
+  @callback enabled?(context()) :: boolean()
   @callback validate(context(), {Result.t(), Result.t()}) :: :ok | :mismatch
   @callback publish(event_type(), context(), {Result.t(), Result.t()}) :: :ok | {:error, term()}
 

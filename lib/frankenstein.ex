@@ -1,6 +1,17 @@
 defmodule Frankenstein do
   @moduledoc """
   Documentation for `Frankenstein`.
+
+  Frankenstein allows you to test in production with confidence.
+
+  Frankenstein runs your candidate(s) in the background and report back the result.
+
+  ## Process architecture
+  Each successful invocation of an experiment creates a new LabSupervisor, and these LabSupervisor supervises your candidate(s)
+
+  The LabSupervisor ensures that:
+  - errors from candidates do not impact your system
+  - results from candidates are published
   """
 
   require Logger
@@ -16,12 +27,13 @@ defmodule Frankenstein do
         context: context
       }) do
     tasks = [
+      # Task.completed(do_run(control_fn)),
       Task.async(fn -> do_run(control_fn) end),
-      if module.sample(context) do
+      if module.enabled?(context) do
         Task.Supervisor.async_nolink(
           # Frankenstein.ExperimentSupervisor,
           # do I need PartitionSupervisor here?
-          {:via, PartitionSupervisor, {Frankenstein.ExperimentSupervisor, self()}},
+          {:via, PartitionSupervisor, {Frankenstein.LabSupervisor, self()}},
           fn -> do_run(candidate_fn) end
         )
       else

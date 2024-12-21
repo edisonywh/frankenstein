@@ -20,9 +20,9 @@ defmodule FrankensteinTest do
         :ok
       end
 
-      def sample(context) do
+      def enabled?(context) do
         if context[:pid] do
-          send(context.pid, {:sample, context.enabled})
+          send(context.pid, {:enabled?, context.enabled})
         else
           true
         end
@@ -71,7 +71,7 @@ defmodule FrankensteinTest do
 
       assert Frankenstein.run(experiment) == 216
 
-      assert_received {:sample, false}
+      assert_received {:enabled?, false}
     end
 
     test "candidate crashes, should not affect control" do
@@ -82,6 +82,17 @@ defmodule FrankensteinTest do
 
       assert Frankenstein.run(experiment) == 216
     end
+
+    # test "candidate crashes, should raise" do
+    #   experiment =
+    #     Experiment.new(:test_experiment)
+    #     |> Experiment.add_control(fn -> raise RuntimeError, "candidate raised" end)
+    #     |> Experiment.add_candidate(fn -> 216 end)
+
+    #   assert_raise RuntimeError, ~r/candidate raised/, fn ->
+    #     Frankenstein.run(experiment)
+    #   end
+    # end
   end
 
   defp purge(module) do

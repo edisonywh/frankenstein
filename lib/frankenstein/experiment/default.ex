@@ -6,7 +6,7 @@ defmodule Frankenstein.Experiment.Default do
   alias Frankenstein.Experiment.Result
 
   @impl Frankenstein.Experiment
-  def sample(_context) do
+  def enabled?(_context) do
     # :rand.uniform() > 0.5
     true
   end

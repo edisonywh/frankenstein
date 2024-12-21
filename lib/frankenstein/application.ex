@@ -9,7 +9,7 @@ defmodule Frankenstein.Application do
   def start(_type, _args) do
     children = [
       # do I need partition supervisor here?
-      {PartitionSupervisor, child_spec: Task.Supervisor, name: Frankenstein.ExperimentSupervisor}
+      {PartitionSupervisor, child_spec: Task.Supervisor, name: Frankenstein.LabSupervisor}
       # {Task.Supervisor, name: Frankenstein.ExperimentSupervisor}
     ]
 
