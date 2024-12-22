@@ -4,9 +4,19 @@ A port of Ruby's `scientist` to help you refactor with confidence.
 
 Meant for: side-effect free code mostly, but you can dependency inject if you'd like.
 
+I want the control to always run, and then the candidate to report in the background.
+
+I need to think about:
+- usage, do I expect people to write multiple experiments, like `experiments/pricing_experiment.ex`?
+- testing, how can people test it? if they want to raise in test for example, or if they want to silent in test. Do we want people to run it during test?
+- do I want to run control first, _then_ experiments?
+  - pros is that the experiment has near-zero impact (no added latency)
+- maybe I need to introduce Observation?
+  - i.e, Result maps {control, observations}
+- Frankenstein.Window as in idea? i.e, imagine there is a shared codepath - Frankenstein don't run that bit of code if an experiment is running
+
 # Usage
 ```elixir
-mhm,
 
 Frankenstein.run(
   control: &original/1,

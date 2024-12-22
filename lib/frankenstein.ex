@@ -20,19 +20,20 @@ defmodule Frankenstein do
   # alias Frankenstein.Experiment.Result
 
   def run(
+        lab,
         %Experiment{
           context: context,
-          control: control,
-          module: mod
+          control: control
         } = experiment
       ) do
     result = Experiment.run(:control, control)
 
-    if mod.enabled?(context) do
+    if lab.enabled?(experiment.name, context) do
       Task.Supervisor.start_child(
         {:via, PartitionSupervisor, {Frankenstein.LabSupervisor, self()}},
         fn ->
-          Frankenstein.Lab.run(experiment, result)
+          # it's a bit weird passing both experiments in here
+          Frankenstein.Lab.run(lab, experiment, result)
         end
       )
     end

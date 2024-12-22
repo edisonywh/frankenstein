@@ -3,8 +3,8 @@ defmodule Frankenstein.Lab do
 
   # TODO: make plural
   def run(
+        lab,
         %Experiment{
-          module: module,
           context: context,
           options: options
         } = experiment,
@@ -45,19 +45,18 @@ defmodule Frankenstein.Lab do
       results,
       fn
         nil ->
-          module.publish(:timeout, context, nil)
+          lab.publish(:timeout, context, nil)
 
         {:exit, reason} ->
-          module.publish(:exit, context, reason)
+          lab.publish(:exit, context, reason)
 
         {:ok, result} ->
-          # todo: refactor to plural, results, maybe {control, [candidate]}
-          case module.validate(context, {control, result}) do
+          case lab.validate(context, {control, result}) do
             :ok ->
-              module.publish(:match, context, {control, result})
+              lab.publish(:match, context, {control, result})
 
             _ ->
-              module.publish(:mismatch, context, {control, result})
+              lab.publish(:mismatch, context, {control, result})
           end
       end
     )
@@ -65,14 +64,3 @@ defmodule Frankenstein.Lab do
     :ok
   end
 end
-
-# If I want to run one thing async, I need to dynamically start up a lab (genserver) and that genserver will report result
-# if I run just tasks, the caller has to await on it, which means I am still missing a process in between.
-
-# Frankenstein.run(experiment)
-#   => Frankenstein.Lab # do I need a genserver or a lab?
-#     => candidate_1
-#     => candidate_2
-#     => candidate_3
-#     => Task.await(...)
-#     => publish/1
