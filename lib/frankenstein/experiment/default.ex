@@ -1,17 +1,17 @@
 defmodule Frankenstein.Experiment.Default do
   require Logger
 
-  @behaviour Frankenstein.Experiment
+  @behaviour Frankenstein.Lab
 
   alias Frankenstein.Experiment.Result
 
-  @impl Frankenstein.Experiment
-  def enabled?(_context) do
+  @impl Frankenstein.Lab
+  def enabled?(_experiment_name, _context) do
     # :rand.uniform() > 0.5
     true
   end
 
-  @impl Frankenstein.Experiment
+  @impl Frankenstein.Lab
   def validate(_context, {%Result{value: control}, %Result{value: candidate}}) do
     if control == candidate do
       Logger.info("(#{__MODULE__}) match")
@@ -20,7 +20,7 @@ defmodule Frankenstein.Experiment.Default do
     end
   end
 
-  @impl Frankenstein.Experiment
+  @impl Frankenstein.Lab
   # TODO: publish timing results
   def publish(:match, _context, {%Result{}, %Result{}}) do
     # :telemetry.execute([:frankenstein, :experiment, :match], %{

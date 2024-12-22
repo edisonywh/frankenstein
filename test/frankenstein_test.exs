@@ -5,8 +5,8 @@ defmodule FrankensteinTest do
   alias Frankenstein.Experiment
 
   setup context do
-    defmodule DefaultTestExperiment do
-      @behaviour Frankenstein.Experiment
+    defmodule TestLab do
+      @behaviour Frankenstein.Lab
 
       # TODO: change the typespec to return true or false
       def validate(context, {control, candidate}) do
@@ -27,7 +27,7 @@ defmodule FrankensteinTest do
         :ok
       end
 
-      def enabled?(context) do
+      def enabled?(_experiment_name, context) do
         default = %{enabled: true, pid: nil}
 
         params = Map.merge(default, context)
@@ -40,9 +40,9 @@ defmodule FrankensteinTest do
       end
     end
 
-    on_exit(fn -> purge(DefaultTestExperiment) end)
+    on_exit(fn -> purge(TestLab) end)
 
-    [experiment: DefaultTestExperiment]
+    [lab: TestLab]
   end
 
   describe "run/1" do
@@ -55,33 +55,31 @@ defmodule FrankensteinTest do
     # assert Frankenstein.run(experiment) == 216
     # end
 
-    test "lab works - matches", %{experiment: mod} do
+    test "lab works - matches", %{lab: lab} do
       pid = self()
 
       experiment =
         Experiment.new(:test_experiment)
-        |> Experiment.add_module(mod)
         |> Experiment.add_context(%{pid: pid})
         |> Experiment.add_control(fn -> 215 + 1 end)
         |> Experiment.add_candidate(fn -> 217 - 1 end)
 
-      assert Frankenstein.run(experiment) == 216
+      assert Frankenstein.run(lab, experiment) == 216
 
       # assert_receive {:validate, _}
       assert_receive {:publish, :match, _}
     end
 
-    test "lab works - mismatches", %{experiment: mod} do
+    test "lab works - mismatches", %{lab: lab} do
       pid = self()
 
       experiment =
         Experiment.new(:test_experiment)
-        |> Experiment.add_module(mod)
         |> Experiment.add_context(%{pid: pid})
         |> Experiment.add_control(fn -> 215 + 1 end)
         |> Experiment.add_candidate(fn -> 27 - 1 end)
 
-      assert Frankenstein.run(experiment) == 216
+      assert Frankenstein.run(lab, experiment) == 216
 
       # assert_receive {:validate, _}
       assert_receive {:publish, :mismatch, _}
@@ -102,51 +100,48 @@ defmodule FrankensteinTest do
     # assert_received {:validate, {%{value: 216}, %{value: 216}}}
     # end
 
-    test "sample/1 would skip", %{experiment: experiment} do
+    test "sample/1 would skip", %{lab: lab} do
       pid = self()
 
       experiment =
         Experiment.new(:test_experiment)
-        |> Experiment.add_module(experiment)
         |> Experiment.add_control(fn -> 216 end)
         |> Experiment.add_candidate(fn -> flunk("should not be called") end)
         |> Experiment.add_context(%{enabled: false, pid: pid})
 
-      assert Frankenstein.run(experiment) == 216
+      assert Frankenstein.run(lab, experiment) == 216
 
       assert_received {:enabled?, false}
     end
 
-    test "candidate crashes, should not affect control", %{experiment: experiment} do
+    test "candidate crashes, should not affect control", %{lab: lab} do
       pid = self()
 
       experiment =
         Experiment.new(:test_experiment)
-        |> Experiment.add_module(experiment)
         |> Experiment.add_context(%{pid: pid})
         |> Experiment.add_control(fn -> 216 end)
         |> Experiment.add_candidate(fn -> raise RuntimeError, "candidate raised" end)
 
-      assert Frankenstein.run(experiment) == 216
+      assert Frankenstein.run(lab, experiment) == 216
 
       assert_receive {:enabled?, true}
       assert_receive {:publish, :exit, {error, _stacktrace}}
       assert error.message =~ ~r/candidate raised/
     end
 
-    test "candidate times out", %{experiment: experiment} do
+    test "candidate times out", %{lab: lab} do
       pid = self()
       timeout_ms = 50
 
       experiment =
         Experiment.new(:test_experiment)
-        |> Experiment.add_module(experiment)
         |> Experiment.add_context(%{pid: pid})
         |> Experiment.add_control(fn -> 216 end)
         |> Experiment.add_options(timeout: timeout_ms)
         |> Experiment.add_candidate(fn -> Process.sleep(timeout_ms + 1) end)
 
-      assert Frankenstein.run(experiment) == 216
+      assert Frankenstein.run(lab, experiment) == 216
 
       assert_receive {:enabled?, true}
       assert_receive {:publish, :timeout, _}

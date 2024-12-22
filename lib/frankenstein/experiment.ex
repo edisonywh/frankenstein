@@ -1,22 +1,14 @@
 defmodule Frankenstein.Experiment do
-  defstruct [:name, :module, :control, :candidate, :context, :options]
+  defstruct [:name, :control, :candidate, :context, :options]
 
   alias Frankenstein.Experiment.Result
 
   @type t() :: %__MODULE__{
-          module: module(),
           control: fun(),
           candidate: fun(),
           context: map(),
           options: list()
         }
-
-  @type context() :: map()
-  @type event_type() :: :match | :mismatch | :skipped
-
-  @callback enabled?(context()) :: boolean()
-  @callback validate(context(), {Result.t(), Result.t()}) :: :ok | :mismatch
-  @callback publish(event_type(), context(), {Result.t(), Result.t()}) :: :ok | {:error, term()}
 
   # TODO: validate function arity with is_function/2
   # TODO: maybe refactor it to explicitly take in `{module \\ Default, opts}`?
@@ -35,7 +27,6 @@ defmodule Frankenstein.Experiment do
 
   def new(name, opts \\ %{}) do
     default = %{
-      module: Frankenstein.Experiment.Default,
       control: fn -> :ok end,
       candidate: fn -> :ok end,
       context: %{}
@@ -45,7 +36,6 @@ defmodule Frankenstein.Experiment do
 
     %__MODULE__{
       name: name,
-      module: params.module,
       control: params.control,
       candidate: params.candidate,
       context: params.context
@@ -60,10 +50,6 @@ defmodule Frankenstein.Experiment do
       time_ms: time,
       value: value
     }
-  end
-
-  def add_module(%__MODULE__{} = experiment, module) do
-    %{experiment | module: module}
   end
 
   def add_control(%__MODULE__{} = experiment, control) do

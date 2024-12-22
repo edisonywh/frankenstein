@@ -1,6 +1,13 @@
 defmodule Frankenstein.Lab do
   alias Frankenstein.Experiment
 
+  @type context() :: map()
+  @type event_type() :: :match | :mismatch | :skipped
+
+  @callback enabled?(term(), context()) :: boolean()
+  @callback validate(context(), {Result.t(), Result.t()}) :: :ok | :mismatch
+  @callback publish(event_type(), context(), {Result.t(), Result.t()}) :: :ok | {:error, term()}
+
   # TODO: make plural
   def run(
         lab,
@@ -10,6 +17,11 @@ defmodule Frankenstein.Lab do
         } = experiment,
         %Experiment.Result{} = control
       ) do
+    opts = %{
+      timeout: options[:timeout] || 5000
+    }
+
+    # TODO: remove support for multi candidates
     candidates = List.wrap(experiment.candidate)
 
     #       Task.Supervisor.async_nolink(
@@ -38,7 +50,7 @@ defmodule Frankenstein.Lab do
 
     # TODO: configurable timeout
     results =
-      Task.yield_many(tasks, options.timeout || 5000)
+      Task.yield_many(tasks, opts.timeout)
       |> Enum.map(fn {task, res} -> res || Task.shutdown(task, :brutal_kill) end)
 
     Enum.map(
