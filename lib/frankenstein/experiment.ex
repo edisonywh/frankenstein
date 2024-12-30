@@ -1,7 +1,8 @@
 defmodule Frankenstein.Experiment do
   defstruct [:name, :control, :candidate, :context, :options]
 
-  alias Frankenstein.Experiment.Result
+  alias Frankenstein.Experiment.Observation
+  alias Frankenstein.Experiment.InvalidExperimentSetupError
 
   @type t() :: %__MODULE__{
           control: fun(),
@@ -10,25 +11,10 @@ defmodule Frankenstein.Experiment do
           options: list()
         }
 
-  # TODO: validate function arity with is_function/2
-  # TODO: maybe refactor it to explicitly take in `{module \\ Default, opts}`?
-  # def new(module \\ Frankenstein.Experiment.Default, opts) do
-  #   control = Keyword.fetch!(opts, :control)
-  #   candidate = Keyword.fetch!(opts, :candidate)
-  #   context = Keyword.get(opts, :context, %{})
-
-  #   %__MODULE__{
-  #     module: module,
-  #     control: control,
-  #     candidate: candidate,
-  #     context: context
-  #   }
-  # end
-
   def new(name, opts \\ %{}) do
     default = %{
-      control: fn -> :ok end,
-      candidate: fn -> :ok end,
+      control: fn -> raise InvalidExperimentSetupError, missing_field: :control end,
+      candidate: fn -> raise InvalidExperimentSetupError, missing_field: :candidate end,
       context: %{}
     }
 
@@ -42,10 +28,11 @@ defmodule Frankenstein.Experiment do
     }
   end
 
+  @spec run(term(), function()) :: Observation.t()
   def run(name, func) when is_function(func, 0) do
     {time, value} = :timer.tc(func)
 
-    %Result{
+    %Observation{
       name: name,
       time_ms: time,
       value: value

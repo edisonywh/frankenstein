@@ -1,10 +1,18 @@
 defmodule Frankenstein.Experiment.Result do
-  defstruct [:name, :time_ms, :vm_stats, :value]
+  defstruct [:lab, :experiment_name, :context, :control, :candidate, :conclusion]
+
+  @type conclusion() ::
+          {:ok, :match}
+          | {:ok, :mismatch}
+          | {:error, :timeout}
+          | {:error, term()}
 
   @type t() :: %__MODULE__{
-          name: term(),
-          time_ms: number(),
-          vm_stats: map(),
-          value: term()
+          lab: module(),
+          experiment_name: term(),
+          context: map(),
+          control: Observation.t(),
+          candidate: Observation.t(),
+          conclusion: conclusion()
         }
 end
