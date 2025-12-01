@@ -9,7 +9,7 @@ defmodule Frankenstein.Telemetry do
       metadata,
       fn ->
         match? = f.()
-        metadata = Map.put(metadata, :match?, match?)
+        metadata = Map.put(metadata, :match, match?)
         {match?, metadata}
       end
     )

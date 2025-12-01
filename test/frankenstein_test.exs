@@ -41,7 +41,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: true
+                        match: true
                       }}
     end
 
@@ -69,7 +69,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: false
+                        match: false
                       }}
     end
 
@@ -98,7 +98,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: false
+                        match: false
                       }}
     end
 
@@ -127,7 +127,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: nil
+                        match: nil
                       }}
     end
 
@@ -163,7 +163,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: true
+                        match: true
                       }}
     end
 
@@ -196,7 +196,7 @@ defmodule FrankensteinTest do
       refute_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: true
+                        match: true
                       }}
     end
 
@@ -233,7 +233,7 @@ defmodule FrankensteinTest do
       assert_receive {[:frankenstein, :experiment, :stop], _, _,
                       %{
                         experiment: :my_experiment,
-                        match?: false
+                        match: false
                       }}
     end
   end

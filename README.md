@@ -21,8 +21,8 @@ Frankenstein.run(experiment)
 Frankenstein always returns the control result, if `enabled?` is evaluated to true, Frankenstein runs the candidate in a separate process concurrently and results are reported with telemetry.
 
 Frankenstein exposes `:telemetry` instrumentation for you to hook into:
-- `[:frankenstein, :experiment, :start]` // `%{experiment, match?}`
-- `[:frankenstein, :experiment, :stop]` // `%{experiment, match?}`
+- `[:frankenstein, :experiment, :start]` // `%{experiment, match}`
+- `[:frankenstein, :experiment, :stop]` // `%{experiment, match}`
 - `[:frankenstein, :test, :start]` // `%{experiment, test}`
 - `[:frankenstein, :test, :stop]` // `%{experiment, test}`
 
