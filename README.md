@@ -2,25 +2,27 @@
 
 A port of Ruby's `scientist` to help you refactor with confidence.
 
-Meant for: side-effect free code mostly, but you can dependency inject if you'd like.
-
 # Usage
 ```elixir
-mhm,
+experiment = %Frankenstein.Experiment{
+  name: :my_experiment,
+  control: &original/0,
+  candidate: &new/0
+  # compare -> defaults to &Kernel.==/2
+  # enabled? -> boolean for you to control if candidate should run
+  # timeout -> timeout for the candidate function, raises Frankenstein.TimeoutError
+}
 
-Frankenstein.run(
-  control: &original/1,
-  candidate: &new/1
-)
-
-Frankenstein.run(%Frankenstein.Experiment{})
+Frankenstein.run(experiment)
 ```
 
-Frankenstein will run both code paths and always return the old result.
+Frankenstein always returns the control result, if `enabled?` is evaluated to true, Frankenstein runs the candidate in a separate process concurrently and results are reported with telemetry.
 
-Frankenstein also provides instrumentation hook for you to easily validate your results.
-
-With Elixir, Frankenstein runs your code concurrently.
+Frankenstein exposes `:telemetry` instrumentation for you to hook into:
+- `[:frankenstein, :experiment, :start]` // `%{experiment, match?}`
+- `[:frankenstein, :experiment, :stop]` // `%{experiment, match?}`
+- `[:frankenstein, :test, :start]` // `%{experiment, test}`
+- `[:frankenstein, :test, :stop]` // `%{experiment, test}`
 
 ## Installation
 
@@ -34,10 +36,3 @@ def deps do
   ]
 end
 ```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/frankenstein>.
-
-
-
