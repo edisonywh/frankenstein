@@ -3,6 +3,8 @@ defmodule FrankensteinTest do
 
   alias Frankenstein.Experiment
 
+  import ExUnit.CaptureLog
+
   setup do
     ref =
       :telemetry_test.attach_event_handlers(self(), [
@@ -80,7 +82,9 @@ defmodule FrankensteinTest do
         candidate: fn -> raise "borked" end
       }
 
-      assert Frankenstein.run(experiment) == 216
+      log = capture_log(fn -> run_await(experiment) end)
+
+      assert log =~ "borked"
 
       assert_receive {[:frankenstein, :test, :stop], _, _,
                       %{
@@ -213,9 +217,11 @@ defmodule FrankensteinTest do
         timeout: 5
       }
 
-      Frankenstein.run(experiment)
+      log = capture_log(fn -> run_await(experiment) end)
 
-      refute_receive :candidate_called, 20
+      assert log =~ "Test timed out after 5ms"
+
+      refute_receive :candidate_called, 1
 
       assert_receive {[:frankenstein, :test, :stop], _, _,
                       %{
@@ -236,5 +242,19 @@ defmodule FrankensteinTest do
                         match: false
                       }}
     end
+  end
+
+  defp run_await(experiment) do
+    value = Frankenstein.run(experiment)
+    lab_pid = Process.get(:frankenstein_lab_pid)
+    ref = Process.monitor(lab_pid)
+
+    receive do
+      {:DOWN, ^ref, :process, _, _} -> nil
+    after
+      100 -> raise "Lab.start() timed out after 100ms"
+    end
+
+    value
   end
 end

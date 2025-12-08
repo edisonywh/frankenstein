@@ -1,15 +1,23 @@
 defmodule Frankenstein.Lab do
   alias Frankenstein.Telemetry
 
+  require Logger
+
   def start(experiment) do
     pid = self()
 
     spawn(fn ->
-      Process.monitor(pid)
+      ref = Process.monitor(pid)
 
       Telemetry.span_experiment(experiment, fn ->
         candidate = run_candidate(experiment)
-        control = listen_for_control()
+
+        control =
+          receive do
+            {:control, value} -> value
+            {:DOWN, ^ref, :process, _, _} -> Kernel.exit(:shutdown)
+          end
+
         compare(control, candidate, experiment.compare)
       end)
     end)
@@ -21,14 +29,12 @@ defmodule Frankenstein.Lab do
     end)
     |> then(&{:ok, &1})
   rescue
-    e -> {:error, e}
-  end
+    e ->
+      Logger.error(Exception.format(:error, e, __STACKTRACE__),
+        crash_reason: {Exception.normalize(:error, e, __STACKTRACE__), __STACKTRACE__}
+      )
 
-  defp listen_for_control do
-    receive do
-      {:control, value} -> value
-      {:DOWN, _, :process, _, _} -> Kernel.exit(:shutdown)
-    end
+      {:error, e}
   end
 
   defp compare({:ok, _} = control, {:ok, _} = candidate, comparison_fn),
