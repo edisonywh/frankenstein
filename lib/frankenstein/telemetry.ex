@@ -2,7 +2,7 @@ defmodule Frankenstein.Telemetry do
   @telemetry_prefix [:frankenstein]
 
   def span_experiment(experiment, f) do
-    metadata = %{experiment: experiment.name}
+    metadata = %{experiment_name: experiment.name}
 
     :telemetry.span(
       @telemetry_prefix ++ [:experiment],
@@ -15,11 +15,11 @@ defmodule Frankenstein.Telemetry do
     )
   end
 
-  def span_test(experiment, test_name, f) do
-    telemetry_metadata = %{experiment: experiment.name, test: test_name}
+  def span_variant(experiment, variant_name, f) do
+    telemetry_metadata = %{experiment_name: experiment.name, variant_name: variant_name}
 
     :telemetry.span(
-      @telemetry_prefix ++ [:test],
+      @telemetry_prefix ++ [:variant],
       telemetry_metadata,
       fn ->
         {f.(), telemetry_metadata}

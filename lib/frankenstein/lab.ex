@@ -24,7 +24,7 @@ defmodule Frankenstein.Lab do
   end
 
   defp run_candidate(experiment) do
-    Telemetry.span_test(experiment, :candidate, fn ->
+    Telemetry.span_variant(experiment, :candidate, fn ->
       run_with_timeout(experiment.candidate, experiment.timeout)
     end)
     |> then(&{:ok, &1})
