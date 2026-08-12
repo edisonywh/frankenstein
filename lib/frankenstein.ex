@@ -9,11 +9,15 @@ defmodule Frankenstein do
 
   @test_mode Application.compile_env(:frankenstein, :test_mode?, false)
 
-  def run(%Experiment{enabled?: false} = experiment) do
+  def run(%Experiment{status: :disabled} = experiment) do
     experiment.control.()
   end
 
-  def run(%Experiment{enabled?: true} = experiment) do
+  def run(%Experiment{status: :adopted} = experiment) do
+    experiment.candidate.()
+  end
+
+  def run(%Experiment{status: :enabled} = experiment) do
     lab_pid = Lab.start(experiment)
 
     if @test_mode do

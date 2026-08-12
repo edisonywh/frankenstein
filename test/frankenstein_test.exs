@@ -145,7 +145,7 @@ defmodule FrankensteinTest do
           send(pid, :candidate_called)
           108 * 2
         end,
-        enabled?: true
+        status: :enabled
       }
 
       Frankenstein.run(experiment)
@@ -178,7 +178,7 @@ defmodule FrankensteinTest do
         name: :my_experiment,
         control: fn -> 216 end,
         candidate: fn -> send(pid, :candidate_called) end,
-        enabled?: false
+        status: :disabled
       }
 
       Frankenstein.run(experiment)
@@ -241,6 +241,54 @@ defmodule FrankensteinTest do
                         experiment_name: :my_experiment,
                         match: false
                       }}
+    end
+
+    test "experiment is adopted" do
+      pid = self()
+
+      experiment = %Experiment{
+        name: :my_experiment,
+        control: fn -> send(pid, :control_called) end,
+        candidate: fn -> 108 * 2 end,
+        status: :adopted
+      }
+
+      assert Frankenstein.run(experiment) == 216
+
+      refute_receive :control_called, 1
+
+      refute_receive {[:frankenstein, :variant, :stop], _, _, _}, 1
+      refute_receive {[:frankenstein, :variant, :exception], _, _, _}, 1
+      refute_receive {[:frankenstein, :experiment, :stop], _, _, _}, 1
+    end
+
+    test "adopted candidate raises into the caller" do
+      experiment = %Experiment{
+        name: :my_experiment,
+        control: fn -> 216 end,
+        candidate: fn -> raise "borked" end,
+        status: :adopted
+      }
+
+      assert_raise RuntimeError, "borked", fn -> Frankenstein.run(experiment) end
+
+      refute_receive {[:frankenstein, :variant, :exception], _, _, _}, 1
+      refute_receive {[:frankenstein, :experiment, :stop], _, _, _}, 1
+    end
+
+    test "adopted candidate ignores the timeout" do
+      experiment = %Experiment{
+        name: :my_experiment,
+        control: fn -> 216 end,
+        candidate: fn ->
+          Process.sleep(10)
+          216
+        end,
+        status: :adopted,
+        timeout: 5
+      }
+
+      assert Frankenstein.run(experiment) == 216
     end
   end
 
